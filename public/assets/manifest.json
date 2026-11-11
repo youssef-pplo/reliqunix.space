@@ -1,0 +1,39 @@
+{
+  "generated": "2026-11-11T18:58:36.879Z",
+  "models": [
+    {
+      "path": "/assets/models/Apollo-Lunar-Module.glb",
+      "source": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Apollo%20Lunar%20Module/Apollo%20Lunar%20Module.glb",
+      "credit": "NASA/Michael D. Carbajal",
+      "page": "https://science.nasa.gov/3d-resources/apollo-lunar-module/"
+    },
+    {
+      "path": "/assets/models/Ingenuity-Mars-Helicopter.glb",
+      "source": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Ingenuity%20Mars%20Helicopter/Ingenuity%20Mars%20Helicopter.glb",
+      "credit": "NASA/Brian E. Kumanchik",
+      "page": "https://science.nasa.gov/3d-resources/ingenuity-mars-helicopter/"
+    },
+    {
+      "path": "/assets/models/Opportunity-MER-Web.glb",
+      "source": "https://assets.science.nasa.gov/content/dam/science/psd/mars/resources/gltf_files/24883_MER_static.glb",
+      "credit": "NASA/JPL-Caltech",
+      "page": "https://science.nasa.gov/resource/spirit-and-opportunity-rover-3d-model/"
+    },
+    {
+      "path": "/assets/models/Opportunity-MER-Low.glb",
+      "source": "https://raw.githubusercontent.com/nasa/NASA-3D-Resources/master/3D%20Models/Mars%20Exploration%20Rover%20-%20Opportunity%20%28MER-B%29/Mars%20Exploration%20Rover%20-%20Opportunity%20%28MER-B%29.glb",
+      "credit": "NASA/Ames Research Center",
+      "page": "https://science.nasa.gov/3d-resources/mars-exploration-rover-opportunity-mer-b/"
+    }
+  ],
+  "textures": {
+    "moon": "/assets/textures/moon-nasa.jpg",
+    "mars": "/assets/textures/mars-procedural.png"
+  },
+  "credits": [
+    {
+      "title": "LROC color mosaic · NASA SVS / Ernie Wright / NASA LRO",
+      "url": "https://svs.gsfc.nasa.gov/4720/"
+    }
+  ]
+}
