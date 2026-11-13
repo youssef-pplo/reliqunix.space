@@ -16,12 +16,12 @@ export function fractalNoise(x:number,y:number,octaves=5) {
   for(let i=0;i<octaves;i++){result+=perlinNoise(x,y)*amplitude;x*=2.03;y*=2.03;amplitude*=0.5;}
   return result;
 }
-export function craterHeight(x:number,z:number) {
+export function craterHeight(x:number,z:number,pads:readonly number[]) {
   let height=fractalNoise(x*0.045,z*0.045)*1.6+fractalNoise(x*0.32,z*0.32)*0.14-0.55;
   const craters=[[-16,-12,7],[15,-30,5],[-13,-51,8],[22,-69,6],[-30,15,12],[27,6,9]];
   for(const [cx,cz,r] of craters){const d=Math.hypot(x-cx,z-cz)/r;height+=Math.exp(-(((d-1)*7)**2))*0.8-Math.max(0,1-d*d)*0.9;}
   // Level the exhibit pads without flattening the surrounding landscape.
-  const pad=Math.min(...[0,-35,-70].map(p=>Math.hypot(x,z-p)));
+  const pad=Math.min(...pads.map(p=>Math.hypot(x,z-p)));
   return height*THREE.MathUtils.smoothstep(pad,3.6,8.5)-0.03;
 }
 function canvas(size:number) {

@@ -20,33 +20,33 @@ import { BrandMark, RelicGlyph } from '@/components/hud/ArchiveGlyph';
 const Experience=dynamic(()=>import('@/components/canvas/Experience'),{ssr:false});
 function OrbitalStory() {
   const planet=useReliqunixStore(s=>s.celestialBody),p=useReliqunixStore(s=>s.scrollProgress),loaded=useReliqunixStore(s=>s.isLoaded);
-  const relics=getRelics(planet),opacity=Math.max(0,1-p/0.17);
-  return <section className={`orbital-story ${loaded?'is-launched':''}`} style={{opacity,visibility:p>0.19?'hidden':'visible',pointerEvents:'none'}} aria-label="Introduction to the archive" aria-hidden={p>0.19}>
+  const relics=getRelics(planet),opacity=Math.max(0,1-p/0.10);
+  return <section className={`orbital-story ${loaded?'is-launched':''}`} style={{opacity,visibility:p>0.11?'hidden':'visible',pointerEvents:'none'}} aria-label="Introduction to the archive" aria-hidden={p>0.11}>
     <div className="hero-copy" style={{transform:`translateY(${-p*160}px)`}}>
-      <p className="eyebrow"><span className="tiny-cross">+</span> A DIGITAL ARCHAEOLOGY OF SPACE <span className="hero-volume">VOL. 001</span></p>
+      <p className="eyebrow"><span className="tiny-cross">+</span> A DIGITAL ARCHAEOLOGY OF SPACE <span className="hero-volume">VOL. 002</span></p>
       <h1>ABANDONED.<br/><span className="hero-not">NOT</span> <span className="hero-outline">FORGOTTEN.</span></h1>
       <div className="hero-intro"><span className="intro-line"/><p>We left more than footprints.<br/>Discover the machines, memories, and human<br className="desktop-break"/> ambition still resting on other worlds.</p></div>
-      <button className="begin-descent" onClick={()=>{soundEngine.playLockClick();useReliqunixStore.getState().jumpToRelic(relics[0].id);}}><span className="descent-circle"><ArrowDownRight size={25} strokeWidth={1.3}/></span><span>BEGIN THE DESCENT<small>SCROLL TO EXPLORE THE ARCHIVE</small></span></button>
+      <div className="hero-start-actions"><button className="begin-descent" onClick={()=>{soundEngine.playLockClick();useReliqunixStore.getState().jumpToRelic(relics[0].id);}}><span className="descent-circle"><ArrowDownRight size={25} strokeWidth={1.3}/></span><span>BEGIN THE DESCENT<small>SCROLL TO EXPLORE THE ARCHIVE</small></span></button><button className="guided-mission-link mono" onClick={()=>useReliqunixStore.getState().openArchive('mission')}>NEW HERE? TAKE THE THREE-STOP FIELD MISSION <ArrowUpRight size={12}/></button></div>
     </div>
     <div className="orbital-target"><span className="micro"><span className="signal-dot"/> ORBITAL RECONNAISSANCE</span><span className="target-world">{planet==='MOON'?'LUNA':'ARES'}<sup>0{planet==='MOON'?'1':'2'}</sup></span><div className="target-data mono"><span>{planet==='MOON'?'EARTH’S ONLY NATURAL SATELLITE':'THE FOURTH PLANET'}</span><span>Ø {planet==='MOON'?'3,474.8':'6,779'} KM <i>/</i> {planet==='MOON'?'1.62':'3.71'} M/S²</span></div></div>
-    <div className="planet-caption mono"><span className="caption-bracket">⌖</span><div>03 ARTIFACTS LOCATED<span>{planet==='MOON'?'THE MOON REMEMBERS.':'A WORLD OF SECOND LIVES.'}</span></div><span className="caption-rule"/></div>
+    <div className="planet-caption mono"><span className="caption-bracket">⌖</span><div>{String(relics.length).padStart(2,'0')} ARTIFACTS LOCATED<span>{planet==='MOON'?'THE MOON REMEMBERS.':'A WORLD OF SECOND LIVES.'}</span></div><span className="caption-rule"/></div>
     <div className="hero-bottom">
       <div className="scroll-prompt"><span className="scroll-line"><i/></span><span className="micro">SCROLL TO<br/>LEAVE ORBIT</span><ArrowDown size={15}/></div>
-      <div className="mission-rail"><div className="rail-label micro"><span>THE {planet==='MOON'?'LUNAR':'MARTIAN'} COLLECTION</span><span>SELECT A RELIC <MoveUpRight size={11}/></span></div><div className="mission-links">{relics.map((relic,i)=><button className="mission-link" key={relic.id} onClick={()=>useReliqunixStore.getState().jumpToRelic(relic.id)} onMouseEnter={()=>soundEngine.playHoverPing()}><RelicGlyph id={relic.id}/><span className="mission-link-copy"><span className="micro">0{i+1}<i>/</i>{relic.yearAbandoned}</span><strong>{relic.shortName}</strong><small>{relic.mission.split(' · ')[0]}</small></span><ArrowUpRight className="mission-arrow" size={15}/></button>)}</div></div>
+      <div className="mission-rail"><div className="rail-label micro"><span>THE {planet==='MOON'?'LUNAR':'MARTIAN'} COLLECTION</span><button onClick={()=>useReliqunixStore.getState().openArchive('collection')}>VIEW ALL {relicsData.length} RELICS <MoveUpRight size={11}/></button></div><div className="mission-links">{relics.slice(0,3).map((relic,i)=><button className="mission-link" key={relic.id} onClick={()=>useReliqunixStore.getState().jumpToRelic(relic.id)} onMouseEnter={()=>soundEngine.playHoverPing()}><RelicGlyph id={relic.id}/><span className="mission-link-copy"><span className="micro">0{i+1}<i>/</i>{relic.yearAbandoned}</span><strong>{relic.shortName}</strong><small>{relic.mission.split(' · ')[0]}</small></span><ArrowUpRight className="mission-arrow" size={15}/></button>)}</div></div>
     </div>
   </section>;
 }
 function DescentOverlay() {
   const p=useReliqunixStore(s=>s.scrollProgress),planet=useReliqunixStore(s=>s.celestialBody);
-  const opacity=p<0.18||p>0.38?0:Math.min(1,(p-0.18)/0.05,(0.38-p)/0.04);
-  return <div className="descent-overlay" style={{opacity}} aria-hidden="true"><span className="eyebrow orange">ORBIT → SURFACE / ENTRY SEQUENCE</span><h2>EVERY ENDING<br/>LEAVES A <em>TRACE.</em></h2><p className="mono">DESCENDING TO THE {planet==='MOON'?'LUNAR':'MARTIAN'} ARCHIVE <span className="blink">_</span></p><div className="descent-ticks">{Array.from({length:36},(_,i)=><i key={i} style={{opacity:p>(0.18+i*0.004)?1:0.15}}/>)}</div></div>;
+  const first=getRelics(planet)[0],opacity=p<0.12||p>0.37?0:Math.min(1,(p-0.12)/0.045,(0.37-p)/0.04);
+  return <div className="descent-overlay" style={{opacity}} aria-hidden="true"><span className="eyebrow orange">ORBIT → SURFACE</span><h2>{p<.24?'CLOSER TO':'ARRIVING AT'}<br/><em>THE STORY.</em></h2><p className="mono">{first.coordinates.regionName.toUpperCase()}<br/>FIRST CONTACT / {first.shortName.toUpperCase()} <span className="blink">_</span></p><div className="descent-ticks">{Array.from({length:36},(_,i)=><i key={i} style={{opacity:p>(0.10+i*0.007)?1:0.15}}/>)}</div></div>;
 }
 function MonumentLedger() {
   const visible=useReliqunixStore(s=>s.scrollProgress>0.94),planet=useReliqunixStore(s=>s.celestialBody);
   return <footer id="ledger" className={`monument-ledger ${visible?'is-visible':''}`} aria-hidden={!visible} inert={!visible} data-lenis-prevent>
     <div className="ledger-intro"><p className="eyebrow"><span className="tiny-cross">+</span> THE MONUMENT LEDGER / 1967–2024</p><h2>THEY STAYED.<br/><span>WE REMEMBER.</span></h2><p>Not simply things we discarded.<br/>Evidence that we dared to go.</p><button className="ledger-orbit mono" onClick={()=>useReliqunixStore.getState().jumpToRelic(null)}>RETURN TO {planet==='MOON'?'LUNAR':'MARTIAN'} ORBIT <ArrowUpRight size={18}/></button></div>
-    <div className="ledger-records"><div className="ledger-table-heading micro"><span>THE OFF-WORLD REGISTER</span><span>06 RECORDS / 02 WORLDS</span></div>{relicsData.map((relic,i)=><button className="ledger-record" key={relic.id} onClick={()=>useReliqunixStore.getState().jumpToRelic(relic.id)}><span className="mono ledger-number">0{i+1}</span><RelicGlyph id={relic.id}/><span className="ledger-record-name"><strong>{relic.shortName}</strong><span className="micro">{relic.coordinates.regionName}</span></span><span className="micro ledger-planet">{relic.planet}</span><span className="mono ledger-year">{relic.yearAbandoned}</span><ArrowUpRight size={17}/></button>)}
-    <div className="ledger-source"><span className="micro">MISSION RECORDS & SCIENCE</span><a href="https://science.nasa.gov/" target="_blank" rel="noreferrer">NASA Science <ArrowUpRight size={12}/></a><a href="https://www.jpl.nasa.gov/" target="_blank" rel="noreferrer">NASA / JPL <ArrowUpRight size={12}/></a></div></div>
+    <div className="ledger-records"><div className="ledger-table-heading micro"><span>THE OFF-WORLD REGISTER</span><span>{String(relicsData.length).padStart(2,'0')} RECORDS / 02 WORLDS</span></div>{relicsData.map((relic,i)=><button className="ledger-record" key={relic.id} onClick={()=>useReliqunixStore.getState().jumpToRelic(relic.id)}><span className="mono ledger-number">{String(i+1).padStart(2,'0')}</span><RelicGlyph id={relic.id}/><span className="ledger-record-name"><strong>{relic.shortName}</strong><span className="micro">{relic.coordinates.regionName}</span></span><span className="micro ledger-planet">{relic.planet}</span><span className="mono ledger-year">{relic.yearAbandoned}</span><ArrowUpRight size={17}/></button>)}
+    <div className="ledger-source"><button className="micro" onClick={()=>useReliqunixStore.getState().openArchive('sources')}>EXPLORE THE NASA SOURCE LIBRARY ↗</button><a href="https://science.nasa.gov/" target="_blank" rel="noreferrer">NASA Science <ArrowUpRight size={12}/></a><a href="https://www.jpl.nasa.gov/" target="_blank" rel="noreferrer">NASA / JPL <ArrowUpRight size={12}/></a></div></div>
     <div className="ledger-colophon"><div><BrandMark/><span className="mono">RELIQUNIX.SPACE</span></div><p>Created for NASA Space Apps · Independent educational project<br/>NASA models & interpretive reconstructions. Compressed flight paths.</p><p>Moon map: NASA SVS / Ernie Wright / LRO<br/>Hardware stories & original models: NASA & JPL</p><button onClick={()=>useReliqunixStore.getState().jumpToRelic(null)} aria-label="Back to orbital view"><ArrowUp size={18}/></button></div>
   </footer>;
 }
@@ -61,9 +61,17 @@ function FallbackPlanet() {
 }
 export default function Home() {
   const lenis=useRef<Lenis|null>(null),loaded=useReliqunixStore(s=>s.isLoaded),phase=useReliqunixStore(s=>s.cameraPhase),jump=useReliqunixStore(s=>s.jumpTarget);
-  const available=useReliqunixStore(s=>s.graphicsAvailable),planet=useReliqunixStore(s=>s.celestialBody);
+  const available=useReliqunixStore(s=>s.graphicsAvailable),planet=useReliqunixStore(s=>s.celestialBody),archivePanel=useReliqunixStore(s=>s.archivePanel);
   useEffect(()=>{
     finishExtensionSafeHydration();
+    try {
+      const saved=JSON.parse(localStorage.getItem('reliqunix-notebook-v1')??'{}');
+      useReliqunixStore.getState().restoreNotebook(Array.isArray(saved.explored)?saved.explored.filter((id:unknown)=>typeof id==='string'):[],Array.isArray(saved.answered)?saved.answered.filter((id:unknown)=>typeof id==='string'):[],saved.notes);
+    } catch { /* Storage is optional; exploration still works in private contexts. */ }
+    const unsubscribe=useReliqunixStore.subscribe((state,previous)=>{
+      if(state.exploredRelicIds===previous.exploredRelicIds&&state.answeredRelicIds===previous.answeredRelicIds&&state.curatorNotes===previous.curatorNotes)return;
+      try {localStorage.setItem('reliqunix-notebook-v1',JSON.stringify({explored:state.exploredRelicIds,answered:state.answeredRelicIds,notes:state.curatorNotes}));} catch { /* Session state remains available. */ }
+    });
     const motion=window.matchMedia('(prefers-reduced-motion: reduce)');
     const update=()=>useReliqunixStore.getState().setReducedMotion(motion.matches);update();motion.addEventListener('change',update);
     const scroller=new Lenis({duration:motion.matches?0:1.2,smoothWheel:!motion.matches,easing:t=>1-Math.pow(1-t,3)});lenis.current=scroller;
@@ -71,21 +79,22 @@ export default function Home() {
     scroller.on('scroll',({scroll,limit}:{scroll:number;limit:number})=>useReliqunixStore.getState().setScrollProgress(limit>0?scroll/limit:0));
     scroller.scrollTo(0,{immediate:true,force:true});
     const state=useReliqunixStore.getState();if(!state.isLoaded)scroller.stop();
-    return()=>{motion.removeEventListener('change',update);gsap.ticker.remove(tick);scroller.destroy();lenis.current=null;soundEngine.disable();};
+    return()=>{unsubscribe();motion.removeEventListener('change',update);gsap.ticker.remove(tick);scroller.destroy();lenis.current=null;soundEngine.disable();};
   },[]);
   useEffect(()=>{
     document.body.dataset.planet=planet.toLowerCase();
   },[planet]);
   useEffect(()=>{
-    if(!loaded||phase==='INSPECT')lenis.current?.stop();else lenis.current?.start();
-    const overflow=!loaded||phase==='INSPECT'?'hidden':'';
+    if(!loaded||phase==='INSPECT'||archivePanel)lenis.current?.stop();else lenis.current?.start();
+    const overflow=!loaded||phase==='INSPECT'||archivePanel?'hidden':'';
     document.documentElement.style.overflow=overflow;
     return()=>{document.documentElement.style.overflow='';};
-  },[loaded,phase]);
+  },[loaded,phase,archivePanel]);
   useEffect(()=>{
     if(!jump||!lenis.current)return;
     const max=document.documentElement.scrollHeight-window.innerHeight;
-    lenis.current.scrollTo(jump.progress*max,{force:true,immediate:jump.immediate||useReliqunixStore.getState().reducedMotion,duration:useReliqunixStore.getState().reducedMotion?0:1.6,onComplete:()=>useReliqunixStore.getState().setScrollProgress(jump.progress)});
+    const state=useReliqunixStore.getState(),crossesDescent=Math.min(state.scrollProgress,jump.progress)<.22&&Math.max(state.scrollProgress,jump.progress)>.38;
+    lenis.current.scrollTo(jump.progress*max,{force:true,immediate:jump.immediate||state.reducedMotion,duration:state.reducedMotion?0:crossesDescent?3.6:1.6,easing:crossesDescent?t=>t*t*t*(t*(t*6-15)+10):undefined,onComplete:()=>useReliqunixStore.getState().setScrollProgress(jump.progress)});
   },[jump]);
   return <MotionConfig reducedMotion="user"><main>
     <div inert={!loaded} aria-hidden={!loaded}>

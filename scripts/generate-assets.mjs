@@ -83,7 +83,7 @@ await Promise.all([
     } else console.log('[OFFLINE FALLBACK] Procedural Moon maps ready');
   })(),
   (async () => {
-    if (manifest.models.length) { console.log(`[NASA MODELS] ${manifest.models.length} cached; all 6 procedural assemblies available`); return; }
+    if (manifest.models.length) { console.log(`[NASA MODELS] ${manifest.models.length} cached; procedural fallbacks available for every relic`); return; }
     try {
       const response = await fetch('https://api.github.com/repos/nasa/NASA-3D-Resources/git/trees/master?recursive=1', { signal: AbortSignal.timeout(5000) });
       if (!response.ok) throw Error('repository unavailable');
@@ -98,7 +98,7 @@ await Promise.all([
     // A second official source is attempted even when the GitHub listing is unavailable.
     const url = 'https://mars.nasa.gov/system/resources/gltf_files/25043_Ingenuity_v3.glb';
     if (!manifest.models.length && await download(url,join(root,'models','ingenuity-nasa.glb'))) manifest.models.push({path:'/assets/models/ingenuity-nasa.glb',source:url});
-    console.log(`[NASA MODELS] ${manifest.models.length} cached; all 6 procedural assemblies available`);
+    console.log(`[NASA MODELS] ${manifest.models.length} cached; procedural fallbacks available for every relic`);
   })(),
   (async () => {
     const fonts = [{ family:'Barlow Condensed',weight:600,name:'display',path:'barlowcondensed/BarlowCondensed-SemiBold.ttf' },{ family:'Space Grotesk',weight:400,name:'sans',path:'spacegrotesk/SpaceGrotesk%5Bwght%5D.ttf' },{ family:'IBM Plex Mono',weight:400,name:'mono',path:'ibmplexmono/IBMPlexMono-Regular.ttf' }];

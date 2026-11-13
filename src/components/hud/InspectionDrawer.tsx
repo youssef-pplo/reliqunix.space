@@ -15,13 +15,13 @@ export default function InspectionDrawer() {
   useEffect(()=>{
     if(!selected)return;const previous=document.activeElement as HTMLElement|null;
     close.current?.focus({preventScroll:true});scroll.current?.scrollTo({top:0});
-    const key=(e:KeyboardEvent)=>{if(e.key==='Escape')returnToFlight();};window.addEventListener('keydown',key);
+    const key=(e:KeyboardEvent)=>{if(e.key==='Escape'&&!useReliqunixStore.getState().archivePanel)returnToFlight();};window.addEventListener('keydown',key);
     return()=>{window.removeEventListener('keydown',key);previous?.focus?.({preventScroll:true});};
   },[selected,returnToFlight]);
   const currentYear=2026;
   const year=relic?Math.round(decay<=80?relic.yearAbandoned+(currentYear-relic.yearAbandoned)*decay/80:currentYear+(decay-80)/20*50):currentYear;
   const go=(direction:number)=>{
-    if(!relic)return;const next=(index+direction+4)%4;soundEngine.playLockClick();useReliqunixStore.getState().inspectPart(relic.id,relic.parts[next].partId);
+    if(!relic)return;const next=(index+direction+relic.parts.length)%relic.parts.length;soundEngine.playLockClick();useReliqunixStore.getState().inspectPart(relic.id,relic.parts[next].partId);
   };
   return <AnimatePresence>{part&&relic&&<motion.aside className="inspection-drawer" initial={{x:36,opacity:0}} animate={{x:0,opacity:1}} exit={{x:24,opacity:0}} transition={{duration:0.48,ease:[0.22,1,0.36,1]}} role="dialog" aria-labelledby="inspection-title" data-lenis-prevent>
     <div className="drawer-top"><span className="micro"><span className="orange">●</span> COMPONENT INSPECTION</span><button ref={close} className="icon-button" onClick={returnToFlight} aria-label="Close inspection"><X size={18}/></button></div>
@@ -38,7 +38,7 @@ export default function InspectionDrawer() {
       <section className="decay-controls" aria-label="Environmental decay simulation">
         <div className="decay-overline"><span className="tiny-cross">+</span> EXPOSURE STUDY</div>
         <div className="decay-heading"><span className="micro">TIME-LAPSE / ENVIRONMENTAL DECAY</span><span className="mono orange">{String(Math.round(decay)).padStart(3,'0')}%</span></div>
-        <div className="decay-year"><strong>{year}</strong><span className="micro">{decay===0?'DAY OF ABANDONMENT':decay<80?'EXPOSURE SIMULATION':decay===80?'PRESENT DAY':'FUTURE PROJECTION'}</span></div>
+        <div className="decay-year"><strong>{year}</strong><span className="micro">{decay===0?'PLACED / RETIRED':decay<80?'EXPOSURE SIMULATION':decay===80?'PRESENT DAY':'FUTURE PROJECTION'}</span></div>
         <input type="range" min="0" max="100" step="1" value={decay} onChange={e=>useReliqunixStore.getState().setDecayTimeline(Number(e.target.value))} aria-label="Environmental decay timeline" aria-valuetext={`${year}, ${Math.round(decay)} percent illustrative exposure`} style={{'--range':`${decay}%`} as React.CSSProperties}/>
         <div className="decay-labels mono"><button onClick={()=>useReliqunixStore.getState().setDecayTimeline(0)}>DAY 1</button><button onClick={()=>useReliqunixStore.getState().setDecayTimeline(80)}>PRESENT</button><button onClick={()=>useReliqunixStore.getState().setDecayTimeline(100)}>+50 YEARS</button></div>
         <p className="decay-explanation">{relic.environmentalThreat}</p><span className="simulation-note">Illustrative weathering, not a measured forecast.</span>

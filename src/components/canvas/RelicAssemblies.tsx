@@ -10,6 +10,8 @@ import { generateKaptonNormal, generateSolarArrayTexture, generateDustPittingMas
 import { partRegistry } from '@/utils/partRegistry';
 import { soundEngine } from '@/utils/soundEngine';
 import NasaRelic from './NasaRelic';
+import { useFlightProgress } from './FlightMotion';
+import { easeFlight } from '@/utils/flightPath';
 
 type Metal = 'foil'|'silver'|'white'|'dark'|'solar'|'orange'|'wire';
 type Materials=Record<Metal,THREE.MeshStandardMaterial>;
@@ -339,11 +341,212 @@ function EDL({relic}:{relic:Relic}) {
     </Part>
   </>;
 }
+/** Educational reconstructions: proportions and deployment are illustrative. */
+function Alsep({relic}:{relic:Relic}) {
+  return <>
+    <Part relic={relic} part={relic.parts[0]} index={0}>
+      <Box at={[0,0.55,0]} size={[1.55,0.85,1.15]} kind="foil"/>
+      <Box at={[0,1.01,0]} size={[1.7,0.08,1.3]} kind="silver"/>
+      {[-1,1].map(x=><group key={x}>
+        <Box at={[x*1.03,1.08,0]} size={[0.55,0.055,1.23]} kind="white" rotation={[0,0,x*-0.3]}/>
+        <Box at={[x*0.77,0.54,0]} size={[0.035,0.6,0.84]} kind="dark"/>
+        {Array.from({length:8},(_,i)=><Box key={i} at={[x*0.79,0.29+i*0.07,0]} size={[0.06,0.025,0.87]} kind="silver"/>)}
+      </group>)}
+      <Box at={[0,0.59,0.59]} size={[1.17,0.53,0.045]} kind="white"/>
+      {[-0.53,0,0.53].map(x=><Cylinder key={x} at={[x,0.51,0.64]} r={0.075} height={0.08} kind="dark" rotation={[Math.PI/2,0,0]}/>)}
+      <Box at={[0,0.1,0]} size={[1.8,0.06,1.45]} kind="silver"/>
+    </Part>
+    <Part relic={relic} part={relic.parts[1]} index={1}>
+      <Cylinder at={[-2.45,0.76,-0.5]} r={0.32} height={1.15} kind="dark"/>
+      {Array.from({length:12},(_,i)=>{const a=i/12*Math.PI*2;return <Box key={i} at={[-2.45+Math.cos(a)*0.37,0.76,-0.5+Math.sin(a)*0.37]} size={[0.29,1.1,0.035]} kind="silver" rotation={[0,-a,0]}/>;})}
+      <Cylinder at={[-2.45,1.36,-0.5]} r={0.3} height={0.09} kind="silver"/>
+      {[-1,1].map(x=><group key={x}><Strut a={[-2.45+x*0.22,0.3,-0.5]} b={[-2.45+x*0.65,0.08,-0.5]} r={0.04}/><Box at={[-2.45+x*0.65,0.06,-0.5]} size={[0.2,0.04,0.5]} kind="silver"/></group>)}
+      <Line points={[[-2.1,0.12,-0.4],[-1.7,0.05,-0.15],[-1.5,0.05,0.25],[-0.76,0.12,0.35]]} color="#bda66d" lineWidth={2}/>
+    </Part>
+    <Part relic={relic} part={relic.parts[2]} index={2}>
+      <Cylinder at={[2.25,0.08,1.45]} r={0.87} height={0.035} kind="silver" sides={32}/>
+      <Cylinder at={[2.25,0.3,1.45]} r={0.45} top={0.32} height={0.4} kind="foil"/>
+      <Cylinder at={[2.25,0.52,1.45]} r={0.34} height={0.04} kind="silver"/>
+      <Box at={[2.25,0.56,1.45]} size={[0.2,0.05,0.13]} kind="white"/>
+      <Line points={[[0.7,0.12,0.5],[1.1,0.045,0.8],[1.3,0.045,1.1],[1.75,0.08,1.45]]} color="#bda66d" lineWidth={2}/>
+    </Part>
+    <Part relic={relic} part={relic.parts[3]} index={3}>
+      <Strut a={[0.25,1.02,-0.22]} b={[0.25,2.45,-0.22]} r={0.035}/>
+      <Cylinder at={[0.25,2.51,-0.22]} r={0.17} height={0.2} kind="white"/>
+      <Box at={[0.25,2.69,-0.22]} size={[0.78,0.06,0.64]} kind="silver" rotation={[0.22,0.3,0]}/>
+      <Box at={[0.25,2.74,-0.22]} size={[0.65,0.035,0.53]} kind="white" rotation={[0.22,0.3,0]}/>
+      <Strut a={[0.25,1.72,-0.22]} b={[-0.55,1.02,-0.45]} r={0.018}/>
+      <Strut a={[0.25,1.72,-0.22]} b={[0.6,1.02,0.45]} r={0.018}/>
+    </Part>
+  </>;
+}
+function MetCart({relic}:{relic:Relic}) {
+  return <>
+    <Part relic={relic} part={relic.parts[0]} index={0}>
+      {[-1,1].map(x=><group key={x}><Wheel at={[x*1.03,0.52,0.1]} r={0.5} wire={false}/><Strut a={[x*0.72,0.89,0.1]} b={[x*1.03,0.52,0.1]} r={0.07}/></group>)}
+      <Strut a={[-1.03,0.52,0.1]} b={[1.03,0.52,0.1]} r={0.07}/>
+      <Strut a={[-0.62,0.8,-0.8]} b={[-0.62,0.12,-1.18]} r={0.035}/>
+      <Strut a={[0.62,0.8,-0.8]} b={[0.62,0.12,-1.18]} r={0.035}/>
+    </Part>
+    <Part relic={relic} part={relic.parts[1]} index={1}>
+      <Box at={[0,0.82,0]} size={[1.6,0.09,1.9]} kind="silver"/>
+      {[-1,1].map(x=><group key={x}><Box at={[x*0.79,1.03,0]} size={[0.045,0.38,1.9]} kind="white"/><Strut a={[x*0.79,1.25,-0.95]} b={[x*0.79,1.25,0.95]} r={0.028}/></group>)}
+      {[-1,1].map(z=><Box key={z} at={[0,1.03,z*0.93]} size={[1.58,0.38,0.035]} kind="silver"/>)}
+      <Box at={[-0.42,1.13,-0.36]} size={[0.56,0.44,0.64]} kind="white"/>
+      <Box at={[-0.42,1.37,-0.36]} size={[0.6,0.05,0.68]} kind="silver"/>
+      {[-0.63,-0.21].map(x=><Box key={x} at={[x,1.15,0]} size={[0.04,0.33,0.04]} kind="dark"/>)}
+    </Part>
+    <Part relic={relic} part={relic.parts[2]} index={2}>
+      {[-1,1].map(x=><Strut key={x} a={[x*0.64,0.83,0.8]} b={[x*0.44,1.43,2.5]} r={0.035}/>)}
+      <Strut a={[-0.44,1.43,2.5]} b={[0.44,1.43,2.5]} r={0.047} kind="dark"/>
+      <Strut a={[-0.6,1.0,1.3]} b={[0.6,1.0,1.3]} r={0.025}/>
+    </Part>
+    <Part relic={relic} part={relic.parts[3]} index={3}>
+      <Strut a={[0.45,0.93,-0.55]} b={[0.5,2.2,-0.75]} r={0.027}/>
+      <Box at={[0.5,2.28,-0.76]} size={[0.32,0.22,0.055]} kind="silver" rotation={[-0.16,0,0]}/>
+      <Strut a={[0.16,0.95,-0.7]} b={[0.2,2.0,-1.1]} r={0.023}/>
+      <Box at={[0.2,2.04,-1.1]} size={[0.4,0.045,0.16]} kind="silver"/>
+      {Array.from({length:7},(_,i)=><Strut key={i} a={[0.02+i*0.06,2.04,-1.14]} b={[0.02+i*0.06,2.16,-1.26]} r={0.009}/>)}
+      {[0,1,2].map(i=><Cylinder key={i} at={[0.25+i*0.17,1.2,0.55]} r={0.055} height={0.62} kind="silver"/>)}
+      <Box at={[-0.37,1.13,0.57]} size={[0.62,0.48,0.48]} kind="foil"/>
+    </Part>
+  </>;
+}
+function LunarCamera({relic}:{relic:Relic}) {
+  return <>
+    <Part relic={relic} part={relic.parts[0]} index={0}>
+      <Box at={[0,1.65,0]} size={[0.8,0.68,1.05]} kind="white"/>
+      <Box at={[0,1.65,-0.56]} size={[0.72,0.59,0.09]} kind="foil"/>
+      <Box at={[0,2.03,-0.08]} size={[0.86,0.07,0.96]} kind="silver"/>
+      <Box at={[0.43,1.65,-0.08]} size={[0.06,0.45,0.64]} kind="foil"/>
+      <Strut a={[-0.25,2.06,-0.24]} b={[-0.25,2.2,-0.24]} r={0.02}/>
+      <Strut a={[0.25,2.06,-0.24]} b={[0.25,2.2,-0.24]} r={0.02}/>
+      <Strut a={[-0.25,2.2,-0.24]} b={[0.25,2.2,-0.24]} r={0.02}/>
+    </Part>
+    <Part relic={relic} part={relic.parts[1]} index={1}>
+      <Cylinder at={[0,1.65,0.66]} r={0.24} height={0.28} kind="dark" rotation={[Math.PI/2,0,0]}/>
+      <Cylinder at={[0,1.65,0.82]} r={0.25} height={0.08} kind="silver" rotation={[Math.PI/2,0,0]} open/>
+      <Cylinder at={[0,1.65,0.85]} r={0.19} height={0.012} kind="solar" rotation={[Math.PI/2,0,0]}/>
+      <Box at={[0,1.97,0.65]} size={[0.57,0.025,0.37]} kind="white"/>
+    </Part>
+    <Part relic={relic} part={relic.parts[2]} index={2}>
+      <Cylinder at={[0,1.25,0]} r={0.15} height={0.13} kind="silver"/>
+      <Cylinder at={[0,0.96,0]} r={0.055} height={0.56} kind="silver"/>
+      {[0,2.094,4.188].map(a=><group key={a}>
+        <Strut a={[0,1.12,0]} b={[Math.cos(a)*0.9,0.07,Math.sin(a)*0.9]} r={0.026}/>
+        <Strut a={[0,0.63,0]} b={[Math.cos(a)*0.6,0.42,Math.sin(a)*0.6]} r={0.015}/>
+        <Cylinder at={[Math.cos(a)*0.9,0.045,Math.sin(a)*0.9]} r={0.09} height={0.025} kind="dark"/>
+      </group>)}
+      <Strut a={[0,1.25,0]} b={[-0.48,1.14,-0.4]} r={0.018}/>
+    </Part>
+    <Part relic={relic} part={relic.parts[3]} index={3}>
+      <Line points={[[0.4,1.5,-0.4],[0.6,0.5,-0.5],[0.9,0.04,-0.4],[1.55,0.04,-0.3],[1.85,0.04,0.1],[2.4,0.04,0.1],[2.7,0.04,-0.4]]} color="#aaa799" lineWidth={2.5}/>
+      {Array.from({length:4},(_,i)=><mesh key={i} position={[2.7,0.045+i*0.018,-0.65]} rotation={[-Math.PI/2,0,0]}><torusGeometry args={[0.42+i*0.018,0.014,5,40]}/><meshStandardMaterial color="#aaa799" roughness={0.9}/></mesh>)}
+      <Box at={[1.6,0.1,0.8]} size={[0.34,0.16,0.22]} kind="silver"/>
+    </Part>
+  </>;
+}
+function Sojourner({relic}:{relic:Relic}) {
+  return <>
+    <Part relic={relic} part={relic.parts[0]} index={0}>
+      <Box at={[0,0.59,0]} size={[1.05,0.52,1.65]} kind="foil"/>
+      {[-1,1].map(x=><group key={x}>
+        {[-1,0,1].map(z=><group key={z}><Wheel at={[x*0.8,0.28,z*0.7]} r={0.27} wire={false}/><Strut a={[x*0.55,0.6,z===1?0.4:-0.3]} b={[x*0.8,0.28,z*0.7]} r={0.03}/></group>)}
+        <Strut a={[x*0.68,0.64,-0.35]} b={[x*0.68,0.64,0.4]} r={0.045}/>
+      </group>)}
+    </Part>
+    <Part relic={relic} part={relic.parts[1]} index={1}>
+      <Box at={[0,0.9,0]} size={[1.36,0.08,1.85]} kind="silver"/>
+      <Box at={[0,0.95,0]} size={[1.29,0.025,1.78]} kind="solar"/>
+      {[-0.43,0.43].map(x=><Box key={x} at={[x,0.968,0]} size={[0.012,0.007,1.8]} kind="silver"/>)}
+      <Cylinder at={[-0.45,1.3,-0.65]} r={0.012} height={0.7} kind="silver"/>
+      <Cylinder at={[-0.45,1.66,-0.65]} r={0.025} height={0.04} kind="dark"/>
+    </Part>
+    <Part relic={relic} part={relic.parts[2]} index={2}>
+      <Box at={[0,0.7,0.89]} size={[0.97,0.25,0.16]} kind="silver"/>
+      {[-1,1].map(x=><group key={x}><Cylinder at={[x*0.36,0.73,1.01]} r={0.095} height={0.1} kind="dark" rotation={[Math.PI/2,0,0]}/><Cylinder at={[x*0.36,0.73,1.07]} r={0.055} height={0.015} kind="solar" rotation={[Math.PI/2,0,0]}/></group>)}
+      {[-0.22,0.22].map(x=><Box key={x} at={[x,0.5,0.92]} size={[0.07,0.06,0.045]} kind="dark"/>)}
+    </Part>
+    <Part relic={relic} part={relic.parts[3]} index={3}>
+      <Strut a={[0,0.64,-0.82]} b={[0,0.4,-1.2]} r={0.045}/>
+      <Cylinder at={[0,0.4,-1.24]} r={0.17} height={0.18} kind="silver" rotation={[Math.PI/2,0,0]}/>
+      <Cylinder at={[0,0.4,-1.35]} r={0.12} height={0.04} kind="dark" rotation={[Math.PI/2,0,0]}/>
+      <Box at={[0,0.64,-0.89]} size={[0.3,0.2,0.1]} kind="white"/>
+    </Part>
+  </>;
+}
+function InSight({relic}:{relic:Relic}) {
+  return <>
+    <Part relic={relic} part={relic.parts[0]} index={0}>
+      <Cylinder at={[0,1.0,0]} r={1.18} top={1.06} height={0.5} kind="foil" sides={6}/>
+      <Cylinder at={[0,1.28,0]} r={1.16} height={0.08} kind="silver" sides={6}/>
+      {[-1,1].map(x=><group key={x}>
+        <Strut a={[x*0.8,1.1,0]} b={[x*2.35,1.04,0]} r={0.06}/>
+        <Cylinder at={[x*2.35,1.08,0]} r={1.25} height={0.025} kind="solar" sides={48}/>
+        <Cylinder at={[x*2.35,1.11,0]} r={0.15} height={0.03} kind="silver"/>
+        {Array.from({length:16},(_,i)=>{const a=i/16*Math.PI*2;return <Strut key={i} a={[x*2.35,1.11,0]} b={[x*2.35+Math.cos(a)*1.25,1.11,Math.sin(a)*1.25]} r={0.009}/>;})}
+      </group>)}
+      {[Math.PI/2,Math.PI*7/6,Math.PI*11/6].map(a=><group key={a}>
+        <Strut a={[Math.cos(a)*0.85,1.1,Math.sin(a)*0.85]} b={[Math.cos(a)*1.65,0.13,Math.sin(a)*1.65]} r={0.055}/>
+        <Strut a={[Math.cos(a+0.4)*0.8,0.8,Math.sin(a+0.4)*0.8]} b={[Math.cos(a)*1.65,0.13,Math.sin(a)*1.65]} r={0.025}/>
+        <Cylinder at={[Math.cos(a)*1.65,0.09,Math.sin(a)*1.65]} r={0.23} top={0.17} height={0.09} kind="silver"/>
+      </group>)}
+    </Part>
+    <Part relic={relic} part={relic.parts[1]} index={1}>
+      <SeismicDome/>
+      <Line points={[[0.5,1.25,0.8],[0.65,0.18,1.4],[0.9,0.04,1.8],[0.8,0.04,2.25],[0.45,0.08,2.55]]} color="#c7a36d" lineWidth={5}/>
+      <Box at={[1.7,0.19,2.25]} size={[0.35,0.3,0.45]} kind="silver"/>
+    </Part>
+    <Part relic={relic} part={relic.parts[2]} index={2}>
+      <Cylinder at={[-0.65,1.47,0.5]} r={0.18} height={0.32} kind="white"/>
+      <Strut a={[-0.65,1.55,0.5]} b={[-0.7,2.12,-0.45]} r={0.085} kind="white"/>
+      <Cylinder at={[-0.7,2.12,-0.45]} r={0.14} height={0.22} kind="silver" rotation={[0,0,Math.PI/2]}/>
+      <Strut a={[-0.7,2.12,-0.45]} b={[-0.8,1.65,-1.5]} r={0.065} kind="white"/>
+      <Box at={[-0.8,1.65,-1.5]} size={[0.25,0.2,0.3]} kind="silver"/>
+      <Strut a={[-0.8,1.56,-1.5]} b={[-0.8,1.23,-1.5]} r={0.015} kind="dark"/>
+      {[-1,1].map(x=><Strut key={x} a={[-0.8,1.23,-1.5]} b={[-0.8+x*0.13,1.1,-1.5]} r={0.015}/>)}
+    </Part>
+    <Part relic={relic} part={relic.parts[3]} index={3}>
+      {[-1,1].map(x=><group key={x}><Cylinder at={[x*0.65,1.52,-0.4]} r={0.11} height={0.42} kind="white"/><Cylinder at={[x*0.65,1.74,-0.4]} r={0.25} height={0.045} kind="white"/></group>)}
+      <Cylinder at={[0.55,1.85,0.38]} r={0.018} height={0.95} kind="silver"/>
+      <Box at={[0.22,1.5,0]} size={[0.55,0.38,0.5]} kind="foil"/>
+      <Cylinder at={[0.42,1.42,0.72]} r={0.09} height={0.13} kind="dark" rotation={[Math.PI/2,0,0]}/>
+    </Part>
+  </>;
+}
+function SeismicDome(){
+  const white=useMetal('white');
+  return <group position={[0,0.07,2.7]}>
+    <mesh material={white} castShadow><sphereGeometry args={[0.65,32,16,0,Math.PI*2,0,Math.PI/2]}/></mesh>
+    <Cylinder at={[0,0.025,0]} r={0.72} height={0.05} kind="silver"/>
+    <Box at={[0,0.68,0]} size={[0.15,0.05,0.12]} kind="silver"/>
+  </group>;
+}
+
 function ShellMaterial(){const material=useMetal('white');return <primitive object={material} attach="material"/>;}
-const Assemblies:Record<string,({relic}:{relic:Relic})=>ReactNode>={eagle:Eagle,lrv:LunarRover,surveyor:Surveyor,opportunity:Opportunity,ingenuity:Ingenuity,edl:EDL};
+const Assemblies:Record<string,({relic}:{relic:Relic})=>ReactNode>={eagle:Eagle,lrv:LunarRover,surveyor:Surveyor,opportunity:Opportunity,ingenuity:Ingenuity,edl:EDL,alsep:Alsep,met:MetCart,camera:LunarCamera,spirit:Opportunity,sojourner:Sojourner,insight:InSight};
 export default function RelicAssemblies() {
   const planet=useReliqunixStore(s=>s.celestialBody),root=useRef<THREE.Group>(null);
-  useFrame(({camera})=>{if(root.current){root.current.visible=useReliqunixStore.getState().scrollProgress>=0.30;for(const child of root.current.children)child.visible=Math.abs(child.position.z-camera.position.z)<28;}});
+  const progress=useFlightProgress();
+  const opacity=useRef(-1),originals=useMemo(()=>new WeakMap<THREE.Material,{opacity:number;transparent:boolean;depthWrite:boolean}>(),[planet]);
+  useFrame(({camera})=>{
+    if(!root.current)return;
+    const fade=easeFlight(progress.current,.305,.35);
+    root.current.visible=fade>0;
+    for(const child of root.current.children)child.visible=Math.abs(child.position.z-camera.position.z)<34;
+    if(fade<1||opacity.current!==fade){
+      root.current.traverse(object=>{
+        if(!(object instanceof THREE.Mesh))return;
+        const materials=Array.isArray(object.material)?object.material:[object.material];
+        for(const material of materials){
+          let base=originals.get(material);
+          if(!base){base={opacity:material.opacity,transparent:material.transparent,depthWrite:material.depthWrite};originals.set(material,base);}
+          material.opacity=base.opacity*fade;material.transparent=fade<1||base.transparent;material.depthWrite=fade<1?false:base.depthWrite;
+        }
+      });
+      opacity.current=fade;
+    }
+  });
   return <group ref={root} visible={false}>{getRelics(planet).map(relic=>{
     const Assembly=Assemblies[relic.id];
     return <group key={relic.id} position={relic.position}>

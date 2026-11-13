@@ -32,7 +32,7 @@ function componentFor(relic:Relic,mesh:THREE.Mesh,box:THREE.Box3,full:THREE.Box3
     if(/solar|antenna/.test(name))return 2;
     return 1;
   }
-  if(relic.id==='opportunity'){
+  if(relic.id==='opportunity'||relic.id==='spirit'){
     if(/arm/.test(material+' '+name))return 2;
     if(/mast/.test(material+' '+name))return 1;
     if(/instrument|silver/.test(material)&&!/foil/.test(material))return 3;

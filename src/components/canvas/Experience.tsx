@@ -8,6 +8,8 @@ import { getRelic } from '@/data/relicsData';
 import PlanetAndTerrain from './PlanetAndTerrain';
 import RelicAssemblies from './RelicAssemblies';
 import CameraRig from './CameraRig';
+import FlightMotion, { useFlightProgress } from './FlightMotion';
+import { easeFlight } from '@/utils/flightPath';
 
 class SceneBoundary extends Component<{children:ReactNode},{failed:boolean}> {
   state={failed:false};
@@ -17,6 +19,7 @@ class SceneBoundary extends Component<{children:ReactNode},{failed:boolean}> {
 }
 function SceneSetup(){
   const {gl,scene,camera}=useThree(),sun=useRef<THREE.DirectionalLight>(null),bounce=useRef<THREE.HemisphereLight>(null);
+  const progress=useFlightProgress();
   useEffect(()=>{
     const generator=new THREE.PMREMGenerator(gl),room=new RoomEnvironment();
     const environment=generator.fromScene(room,0.04);
@@ -28,7 +31,7 @@ function SceneSetup(){
     return()=>{clearTimeout(timer);canvas.removeEventListener('webglcontextlost',lost);environment.dispose();scene.environment=null;};
   },[gl,scene]);
   useFrame(()=>{
-    const state=useReliqunixStore.getState(),surface=THREE.MathUtils.smoothstep(state.scrollProgress,0.25,0.4),mars=state.celestialBody==='MARS';
+    const state=useReliqunixStore.getState(),surface=easeFlight(progress.current,.26,.38),mars=state.celestialBody==='MARS';
     if(scene.fog instanceof THREE.FogExp2){scene.fog.density=surface*(mars?0.010:0.0038);scene.fog.color.set(mars?'#5a392b':'#101315');}
     // A low key light and restrained sky fill preserve shape, metal and deep shadows.
     // The PMREM is generated locally once; no HDR network dependency or extra pass.
@@ -72,7 +75,7 @@ export default function Experience(){
   return <SceneBoundary><div className="experience-canvas" aria-label="Interactive 3D archive of the Moon and Mars">
     <Canvas frameloop="demand" shadows={{type:THREE.PCFShadowMap}} dpr={1} camera={{position:[0,18,42],fov:40,near:0.1,far:500}} gl={{antialias:true,alpha:true,toneMapping:THREE.ACESFilmicToneMapping,powerPreference:'high-performance'}} fallback={null} onCreated={({gl})=>{gl.setClearColor('#08090a',0);gl.toneMappingExposure=0.97;}}>
       <Suspense fallback={null}>
-        <SceneSetup/><RenderOnInteraction/><PlanetAndTerrain/><RelicAssemblies/>
+        <FlightMotion><SceneSetup/><RenderOnInteraction/><PlanetAndTerrain/><RelicAssemblies/></FlightMotion>
       </Suspense>
     </Canvas>
   </div></SceneBoundary>;

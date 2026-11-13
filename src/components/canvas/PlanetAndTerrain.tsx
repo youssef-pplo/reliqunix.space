@@ -8,18 +8,27 @@ import { getRelics, type CelestialBody } from '@/data/relicsData';
 import { useReliqunixStore } from '@/store/useReliqunixStore';
 import { craterHeight, fractalNoise, generateTerrainTextures, seededRandom } from '@/utils/proceduralTextures';
 import { soundEngine } from '@/utils/soundEngine';
+import { createFlightPath, easeFlight, FLIGHT, latLngToVector } from '@/utils/flightPath';
+import { useFlightProgress } from './FlightMotion';
 
-export function latLngToVector(lat:number,lng:number,radius:number) {
-  const phi=THREE.MathUtils.degToRad(lat),theta=THREE.MathUtils.degToRad(lng);
-  return new THREE.Vector3(Math.cos(phi)*Math.cos(theta)*radius,Math.sin(phi)*radius,-Math.cos(phi)*Math.sin(theta)*radius);
-}
 function OrbitalGlobe({planet}:{planet:CelestialBody}) {
-  const root=useRef<THREE.Group>(null),sphere=useRef<THREE.Group>(null),ring=useRef<THREE.Group>(null);
+  const root=useRef<THREE.Group>(null),sphere=useRef<THREE.Group>(null),ring=useRef<THREE.Group>(null),pins=useRef<THREE.Group>(null);
   const material=useRef<THREE.MeshStandardMaterial>(null);
+  const progress=useFlightProgress(),flight=useMemo(()=>createFlightPath(planet),[planet]);
   const maps=useMemo(()=>generateTerrainTextures(planet),[planet]);
   const [official,setOfficial]=useState<THREE.Texture|null>(null);
   const [heightMap,setHeightMap]=useState<THREE.Texture|null>(null);
   const relics=getRelics(planet);
+  // Nearby records share a marker so Apollo 11 and Apollo 12 labels do not overlap.
+  const sites=useMemo(()=>{
+    const clusters:typeof relics[]=[];
+    for(const relic of relics){
+      const point=latLngToVector(relic.coordinates.lat,relic.coordinates.lng,1);
+      const cluster=clusters.find(items=>point.distanceTo(latLngToVector(items[0].coordinates.lat,items[0].coordinates.lng,1))<0.035);
+      if(cluster)cluster.push(relic);else clusters.push([relic]);
+    }
+    return clusters;
+  },[planet]);
   useEffect(()=>{
     let alive=true;const owned:THREE.Texture[]=[];
     setOfficial(null);setHeightMap(null);
@@ -39,49 +48,58 @@ function OrbitalGlobe({planet}:{planet:CelestialBody}) {
   const orbit=useMemo(()=>Array.from({length:161},(_,i)=>{const a=i/160*Math.PI*2;return new THREE.Vector3(Math.cos(a)*14.4,0,Math.sin(a)*14.4);}),[]);
   useFrame(()=>{
     if(!root.current)return;
-    const p=useReliqunixStore.getState().scrollProgress,fade=1-THREE.MathUtils.smoothstep(p,0.22,0.38);
-    root.current.visible=p<0.385;
-    root.current.scale.setScalar(1+(1-fade)*0.45);
-    root.current.position.set(8.8,12-(1-fade)*22,-(1-fade)*10);
+    const p=progress.current,fade=1-easeFlight(p,.335,.365);
+    root.current.visible=p<.365;
+    const scale=flight.sampleGlobe(p,root.current.position,root.current.quaternion);
+    root.current.scale.setScalar(scale);
     if(material.current)material.current.opacity=fade;
-    rim.uniforms.opacity.value=fade*(planet==='MARS'?0.24:0.085);
-    if(sphere.current)sphere.current.rotation.y=-Math.PI/2-(planet==='MOON'?0.36:0.68);
-
+    rim.uniforms.opacity.value=(1-easeFlight(p,.08,.24))*(planet==='MARS'?0.24:0.085);
+    if(pins.current)pins.current.visible=p<.09;
+    if(ring.current){
+      ring.current.visible=p<.09;
+      ring.current.traverse(object=>{
+        if(object instanceof THREE.Mesh){const materials=Array.isArray(object.material)?object.material:[object.material];for(const m of materials)m.opacity=(object.parent?.rotation.x===1.16?0.22:0.10)*(1-easeFlight(p,.02,.08));}
+      });
+    }
   });
-  return <group ref={root} position={[10,12,0]}>
-    <group ref={sphere} rotation={[0,-Math.PI/2+0.1,-0.11]}>
+  return <group ref={root} position={[8.8,12,0]}>
+    <group ref={sphere}>
       <mesh>
-        <sphereGeometry args={[10.6,128,96]}/>
+        <sphereGeometry args={[10.6,192,128]}/>
         <meshStandardMaterial ref={material} map={official??maps.albedo} bumpMap={heightMap??maps.height} bumpScale={official?0.17:0.32} envMapIntensity={0.025} roughness={0.98} color={planet==='MOON'?'#dededb':'#d8b79d'} transparent/>
       </mesh>
       <mesh scale={1.009}><sphereGeometry args={[10.6,64,48]}/><shaderMaterial args={[rim]} transparent depthWrite={false} blending={THREE.AdditiveBlending}/></mesh>
-      {relics.map((relic,i)=>{
-        const position=latLngToVector(relic.coordinates.lat,relic.coordinates.lng,10.75);
+      <group ref={pins}>{sites.map(site=>{
+        const relic=site[0],position=latLngToVector(relic.coordinates.lat,relic.coordinates.lng,10.75);
         return <group key={relic.id} position={position}>
           <mesh onPointerOver={e=>{e.stopPropagation();soundEngine.playHoverPing();}} onClick={e=>{e.stopPropagation();useReliqunixStore.getState().jumpToRelic(relic.id);}}>
             <sphereGeometry args={[0.11,12,12]}/><meshBasicMaterial color="#ff7747" toneMapped={false}/>
           </mesh>
           <Html center distanceFactor={36} zIndexRange={[7,0]} style={{pointerEvents:'auto'}}>
-            <button className="orbital-pin" onClick={()=>useReliqunixStore.getState().jumpToRelic(relic.id)} aria-label={`Fly to ${relic.name}`}><span className="beacon-dot"/><span>0{i+1}<b>{relic.shortName}</b></span></button>
+            <div style={{display:'grid',gap:5}}>
+              {site.map(record=><button key={record.id} className="orbital-pin" onClick={()=>useReliqunixStore.getState().jumpToRelic(record.id)} aria-label={`Fly to ${record.name}`}><span className="beacon-dot"/><span>{String(relics.indexOf(record)+1).padStart(2,'0')}<b>{record.shortName}</b></span></button>)}
+            </div>
           </Html>
         </group>;
-      })}
+      })}</group>
     </group>
     <group ref={ring} rotation={[0,0,-0.22]}>
-      <group rotation={[1.16,0.12,0]}><Line points={orbit} color="#b7b6a9" lineWidth={0.65} transparent opacity={0.22}/></group>
-      <group rotation={[0.5,0.15,1.1]}><Line points={orbit} color="#b7b6a9" lineWidth={0.6} transparent opacity={0.10}/></group>
+      <group rotation={[1.16,0.12,0]}><Line points={orbit} color="#b7b6a9" lineWidth={0.65} transparent depthWrite={false} opacity={0.22}/></group>
+      <group rotation={[0.5,0.15,1.1]}><Line points={orbit} color="#b7b6a9" lineWidth={0.6} transparent depthWrite={false} opacity={0.10}/></group>
     </group>
-    <mesh rotation={[Math.PI/2,0,0]} position={[0,-13,0]}><ringGeometry args={[0.04,0.08,32]}/><meshBasicMaterial color="#ff7747" side={THREE.DoubleSide}/></mesh>
   </group>;
 }
 
-/** Gentle local relief with a broad, distant rim; the exhibit pads stay level. */
+const exhibitStops={MOON:getRelics('MOON').map(relic=>relic.position[2]),MARS:getRelics('MARS').map(relic=>relic.position[2])};
+function exhibitBounds(planet:CelestialBody){const stops=exhibitStops[planet],minimum=Math.min(...stops),maximum=Math.max(...stops);return {center:(minimum+maximum)/2,length:maximum-minimum};}
+/** Gentle local relief with a broad, distant rim; all exhibit pads stay level. */
 function surfaceHeight(x:number,z:number,planet:CelestialBody) {
-  const distance=Math.min(...[0,-35,-70].map(p=>Math.hypot(x,z-p)));
-  const perimeter=THREE.MathUtils.smoothstep(Math.hypot(x,(z+35)*0.68),34,105);
+  const distance=Math.min(...exhibitStops[planet].map(p=>Math.hypot(x,z-p)));
+  const {center}=exhibitBounds(planet);
+  const perimeter=THREE.MathUtils.smoothstep(Math.hypot(x,(z-center)*0.35),34,105);
   const ridge=fractalNoise(x*0.025+27,z*0.025+39,3)*(planet==='MARS'?12:8)*perimeter;
   const ripple=planet==='MARS'?Math.sin(x*0.32+z*0.085)*0.07:0;
-  return craterHeight(x,z)*0.39+(ridge+ripple)*THREE.MathUtils.smoothstep(distance,5,14);
+  return craterHeight(x,z,exhibitStops[planet])*0.39+(ridge+ripple)*THREE.MathUtils.smoothstep(distance,5,14);
 }
 
 /** Small cached maps carry powder grain, not oversized repeating crater rings. */
@@ -112,38 +130,41 @@ function regolithMaps(planet:CelestialBody) {
   const maps={albedo:create('albedo'),normal:create('normal'),roughness:create('roughness')};regolithCache.set(planet,maps);return maps;
 }
 
-function MartianHorizon() {
+function MartianHorizon({center}:{center:number}) {
   const material=useRef<THREE.ShaderMaterial>(null);
+  const progress=useFlightProgress();
   const shader=useMemo(()=>({
     uniforms:{opacity:{value:0}},
     vertexShader:'varying vec3 worldPosition; void main(){vec4 world=modelMatrix*vec4(position,1.0);worldPosition=world.xyz;gl_Position=projectionMatrix*viewMatrix*world;}',
     fragmentShader:'uniform float opacity; varying vec3 worldPosition; void main(){vec3 direction=normalize(worldPosition-cameraPosition);float horizon=pow(max(0.0,1.0-abs(direction.y)),7.0);vec3 color=mix(vec3(0.19,0.09,0.055),vec3(0.48,0.25,0.14),pow(horizon,2.0));gl_FragColor=vec4(color,horizon*opacity);}',
   }),[]);
-  useFrame(()=>{if(material.current)material.current.uniforms.opacity.value=THREE.MathUtils.smoothstep(useReliqunixStore.getState().scrollProgress,0.22,0.38)*0.73;});
-  return <mesh position={[0,0,-35]} renderOrder={-5}><sphereGeometry args={[135,32,16]}/><shaderMaterial ref={material} args={[shader]} side={THREE.BackSide} transparent depthWrite={false} toneMapped={false}/></mesh>;
+  useFrame(()=>{if(material.current)material.current.uniforms.opacity.value=easeFlight(progress.current,FLIGHT.terrain,FLIGHT.landed)*0.73;});
+  return <mesh position={[0,0,center]} renderOrder={-5}><sphereGeometry args={[220,32,16]}/><shaderMaterial ref={material} args={[shader]} side={THREE.BackSide} transparent depthWrite={false} toneMapped={false}/></mesh>;
 }
 
 function SurfaceTerrain({planet}:{planet:CelestialBody}) {
   const root=useRef<THREE.Group>(null),rocks=useRef<THREE.InstancedMesh>(null);
   const groundMaterial=useRef<THREE.MeshStandardMaterial>(null),rockMaterial=useRef<THREE.MeshStandardMaterial>(null),dustMaterial=useRef<THREE.PointsMaterial>(null);
+  const progress=useFlightProgress();
   const maps=useMemo(()=>regolithMaps(planet),[planet]);
+  const {center,length}=exhibitBounds(planet);
   const normalScale=useMemo(()=>new THREE.Vector2(0.42,0.42),[]);
   const geometry=useMemo(()=>{
-    const geo=new THREE.PlaneGeometry(230,230,120,120),p=geo.attributes.position;
-    for(let i=0;i<p.count;i++)p.setZ(i,surfaceHeight(p.getX(i),-p.getY(i)-35,planet));
+    const geo=new THREE.PlaneGeometry(230,length+170,120,160),p=geo.attributes.position;
+    for(let i=0;i<p.count;i++)p.setZ(i,surfaceHeight(p.getX(i),-p.getY(i)+center,planet));
     geo.computeVertexNormals();return geo;
   },[planet]);
   const particles=useMemo(()=>{
     const rand=seededRandom(planet==='MOON'?52:21),positions=new Float32Array(160*3);
-    for(let i=0;i<160;i++){positions[i*3]=(rand()-0.5)*80;positions[i*3+1]=0.2+rand()*5;positions[i*3+2]=10-rand()*110;}
+    for(let i=0;i<160;i++){positions[i*3]=(rand()-0.5)*80;positions[i*3+1]=0.2+rand()*5;positions[i*3+2]=20-rand()*(length+40);}
     return positions;
   },[planet]);
   useEffect(()=>{
     if(!rocks.current)return;const rand=seededRandom(429),dummy=new THREE.Object3D(),color=new THREE.Color();
     for(let i=0;i<640;i++){
       const foreground=i<400;
-      let x=(rand()-0.5)*(foreground?76:190),z=(foreground?15:35)-rand()*(foreground?115:190);
-      if(Math.min(...[0,-35,-70].map(v=>Math.hypot(x,z-v)))<4.3)x+=Math.sign(x||1)*5;
+      let x=(rand()-0.5)*(foreground?76:190),z=(foreground?20:55)-rand()*(length+(foreground?45:110));
+      if(Math.min(...exhibitStops[planet].map(v=>Math.hypot(x,z-v)))<4.3)x+=Math.sign(x||1)*5;
       const scale=foreground?0.035+rand()**3*0.37:0.17+rand()**3*1.45;
       dummy.position.set(x,surfaceHeight(x,z,planet)+scale*0.22-0.05,z);
       dummy.rotation.set(rand()*Math.PI,rand()*Math.PI,rand()*Math.PI);dummy.scale.set(scale,scale*(0.32+rand()*0.65),scale*(0.6+rand()*0.8));dummy.updateMatrix();rocks.current.setMatrixAt(i,dummy.matrix);
@@ -154,15 +175,15 @@ function SurfaceTerrain({planet}:{planet:CelestialBody}) {
   },[planet]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
   useFrame(()=>{
-    const p=useReliqunixStore.getState().scrollProgress,fade=THREE.MathUtils.smoothstep(p,0.22,0.38);
-    if(root.current)root.current.visible=p>=0.22;
+    const p=progress.current,fade=easeFlight(p,FLIGHT.terrain,FLIGHT.groundReady);
+    if(root.current)root.current.visible=p>=FLIGHT.terrain;
     if(groundMaterial.current)groundMaterial.current.opacity=fade;
     if(rockMaterial.current)rockMaterial.current.opacity=fade;
-    if(dustMaterial.current)dustMaterial.current.opacity=fade*(planet==='MARS'?0.11:0.018);
+    if(dustMaterial.current)dustMaterial.current.opacity=fade*(planet==='MARS'?0.11:0);
   });
   return <group ref={root} visible={false}>
-    {planet==='MARS'&&<MartianHorizon/>}
-    <mesh geometry={geometry} rotation={[-Math.PI/2,0,0]} position={[0,-0.05,-35]} receiveShadow>
+    {planet==='MARS'&&<MartianHorizon center={center}/>}
+    <mesh geometry={geometry} rotation={[-Math.PI/2,0,0]} position={[0,-0.05,center]} receiveShadow>
       <meshStandardMaterial ref={groundMaterial} map={maps.albedo} normalMap={maps.normal} normalScale={normalScale} roughnessMap={maps.roughness} roughness={1} envMapIntensity={0.14} transparent/>
     </mesh>
     <instancedMesh ref={rocks} args={[undefined,undefined,640]} receiveShadow frustumCulled={false}>
